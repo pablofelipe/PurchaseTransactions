@@ -1,0 +1,28 @@
+services:
+  purchasetransactions:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime  # Especifica o estágio target
+    container_name: purchase-transactions
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80;https://+:443
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    container_name: purchase-transactions-tests
+    command: dotnet test PurchaseTransactions.Tests/PurchaseTransactions.Tests.csproj
+    volumes:
+      - .:/src
+    working_dir: /src

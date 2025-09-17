@@ -1,0 +1,39 @@
+[
+  {
+    "ContainingType": "PurchaseTransactions.Controllers.TransactionsController",
+    "Method": "Create",
+    "RelativePath": "transactions",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "PurchaseTransactions.Domain.Dto.CreateTransactionDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PurchaseTransactions.Controllers.TransactionsController",
+    "Method": "Get",
+    "RelativePath": "transactions/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "currency",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  }
+]

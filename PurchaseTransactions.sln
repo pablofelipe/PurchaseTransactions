@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurchaseTransactions", "PurchaseTransactions\PurchaseTransactions.csproj", "{17EC3147-4562-407D-51E2-F777B9A50022}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurchaseTransactions.Tests", "PurchaseTransactions.Tests\PurchaseTransactions.Tests.csproj", "{04C39155-13AA-88A0-4EB4-F12236DD2DB4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{17EC3147-4562-407D-51E2-F777B9A50022} = {17EC3147-4562-407D-51E2-F777B9A50022}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{17EC3147-4562-407D-51E2-F777B9A50022}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17EC3147-4562-407D-51E2-F777B9A50022}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17EC3147-4562-407D-51E2-F777B9A50022}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17EC3147-4562-407D-51E2-F777B9A50022}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04C39155-13AA-88A0-4EB4-F12236DD2DB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04C39155-13AA-88A0-4EB4-F12236DD2DB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04C39155-13AA-88A0-4EB4-F12236DD2DB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04C39155-13AA-88A0-4EB4-F12236DD2DB4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3B7CC088-36E8-4BA8-BB8B-7F159943FECD}
+	EndGlobalSection
+EndGlobal
