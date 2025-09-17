@@ -17,6 +17,33 @@ This API allows you to create purchase transactions in USD and convert them to v
 
 ## 🚀 API Endpoints
 
+### Local Development (without Docker)
+- **HTTP**: http://localhost:5097
+- **HTTPS**: https://localhost:7082
+
+### Docker Deployment
+- **HTTP**: http://localhost:5000
+- **HTTPS**: https://localhost:5001
+
+### Example with Docker:
+
+```bash
+# Create transaction
+curl -X 'POST' \
+  'http://localhost:5000/transactions' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "description": "Test Purchase",
+  "transactionDate": "2025-09-17T00:00:00Z",
+  "amountUsd": 29.87
+}'
+
+# Get converted transaction
+curl -X 'GET' \
+  'http://localhost:5000/transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real' \
+  -H 'accept: */*'
+  
 ### Create a Transaction
 ```bash
 POST /transactions
@@ -147,7 +174,7 @@ The application uses `appsettings.json` for configuration:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Data Source=/app/data/purchasetransactions.db"
+    "DefaultConnection": "Data Source=transactions.db"
   },
   "ApiFiscal": {
     "BaseUrl": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange",
