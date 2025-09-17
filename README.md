@@ -118,10 +118,6 @@ GET /transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real
    docker-compose up -d
    ```
 
-3. **The API will be available at**
-   - HTTP: http://localhost:5000
-   - HTTPS: https://localhost:5001
-
 ### Method 2: Local Development
 
 1. **Clone the repository**
