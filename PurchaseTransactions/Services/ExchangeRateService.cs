@@ -38,7 +38,7 @@ public class ExchangeRateService(IHttpClientFactory factory, IConfiguration conf
         var rateDate = DateTime.ParseExact(recordDateProp.GetString()!, "yyyy-MM-dd", CultureInfo.InvariantCulture);
         var rate = decimal.Parse(rateProp.GetString()!, CultureInfo.InvariantCulture);
 
-        if ((transactionDate - rateDate).TotalDays > 183) // ~6 meses
+        if ((transactionDate - rateDate).TotalDays > 183) // ~6 months
             throw new RateOutdatedException(currency);
 
         return (rate, rateDate);
