@@ -2,14 +2,16 @@
 using Polly;
 using PurchaseTransactions.Domain;
 using PurchaseTransactions.Domain.Dto;
+using PurchaseTransactions.Exceptions;
 using PurchaseTransactions.Persistence;
 using System.ComponentModel.DataAnnotations;
 
 namespace PurchaseTransactions.Services;
 
-public class TransactionService(ApplicationDbContext db) : ITransactionService
+public class TransactionService(ApplicationDbContext db, IExchangeRateService exchangeRateService) : ITransactionService
 {
     private readonly ApplicationDbContext _db = db;
+    private readonly IExchangeRateService _exchangeRateService = exchangeRateService;
 
     public async Task<Transaction> CreateAsync(CreateTransactionDto dto)
     {
@@ -34,7 +36,9 @@ public class TransactionService(ApplicationDbContext db) : ITransactionService
 
     public Transaction? GetById(Guid id)
     {
-        return _db.Transactions.FirstOrDefault(t => t.Id == id);
+        var transaction = _db.Transactions.FirstOrDefault(t => t.Id == id);
+
+        return transaction ?? throw new ValidationException($"Transaction with ID {id} not found");
     }
 
     public IEnumerable<Transaction> GetAll()
@@ -47,7 +51,6 @@ public class TransactionService(ApplicationDbContext db) : ITransactionService
         return await _db.Transactions.ToListAsync();
     }
 
-    // Método centralizado usando padrão Template Method
     private async Task<Transaction> CreateTransactionCoreAsync(Transaction transaction, bool async)
     {
         ValidateTransaction(transaction);
@@ -67,7 +70,7 @@ public class TransactionService(ApplicationDbContext db) : ITransactionService
         return transaction;
     }
 
-    private void ValidateTransaction(Transaction transaction)
+    private static void ValidateTransaction(Transaction transaction)
     {
         if (string.IsNullOrWhiteSpace(transaction.Description) || transaction.Description.Length > 50)
             throw new ValidationException("Invalid description");
@@ -76,7 +79,7 @@ public class TransactionService(ApplicationDbContext db) : ITransactionService
             throw new ValidationException("Purchase value must be positive");
     }
 
-    private void ProcessTransaction(Transaction transaction)
+    private static void ProcessTransaction(Transaction transaction)
     {
         transaction.Description = transaction.Description?.Trim();
         transaction.AmountUsd = Math.Round(transaction.AmountUsd, 2, MidpointRounding.AwayFromZero);
@@ -87,7 +90,7 @@ public class TransactionService(ApplicationDbContext db) : ITransactionService
         }
     }
 
-    private Transaction MapToTransaction(CreateTransactionDto dto)
+    private static Transaction MapToTransaction(CreateTransactionDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Description) || dto.Description.Length > 50)
             throw new ArgumentException("Description is invalid.");
@@ -114,5 +117,63 @@ public class TransactionService(ApplicationDbContext db) : ITransactionService
         _db.SaveChanges();
 
         return true;
+    }
+
+    public async Task<TransactionResponseDto> GetTransactionWithConversionAsync(Guid id, string currency)
+    {
+        var transaction = await _db.Transactions.FindAsync(id);
+        if (transaction == null)
+        {
+            throw new TransactionNotFoundException(id);
+        }
+
+        try
+        {
+            var (rate, rateDate) = await _exchangeRateService.GetRateForDateAsync(
+                currency, transaction.TransactionDate
+            );
+
+            var convertedAmount = transaction.AmountUsd * rate;
+
+            return new TransactionResponseDto
+            {
+                Id = transaction.Id,
+                Description = transaction.Description,
+                TransactionDate = transaction.TransactionDate,
+                AmountUsd = transaction.AmountUsd,
+                TargetCurrency = currency.ToUpper(),
+                ExchangeRate = rate,
+                ConvertedAmount = Math.Round(convertedAmount, 2),
+                ExchangeRateDate = rateDate
+            };
+        }
+        catch (CurrencyCodeRequiredException)
+        {
+            throw new InvalidTransactionException("Currency code is required for conversion");
+        }
+        catch (TreasuryApiException ex)
+        {
+            throw new ExchangeRateServiceException($"Error communicating with exchange rate service: {ex.Message}");
+        }
+        catch (NoRatesFoundException)
+        {
+            throw new ExchangeRateNotFoundException(currency, transaction.TransactionDate);
+        }
+        catch (FieldNotFoundException ex)
+        {
+            throw new ExchangeRateServiceException($"Invalid response from exchange rate service: {ex.Message}");
+        }
+        catch (RateOutdatedException)
+        {
+            throw new ExchangeRateNotFoundException(currency, transaction.TransactionDate);
+        }
+        catch (ExchangeRateException ex)
+        {
+            throw new ExchangeRateServiceException($"Exchange rate error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            throw new ExchangeRateServiceException($"Unexpected error retrieving exchange rate: {ex.Message}");
+        }
     }
 }

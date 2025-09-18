@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using PurchaseTransactions.Controllers;
 using PurchaseTransactions.Persistence;
@@ -14,17 +15,19 @@ namespace PurchaseTransactions.Tests
                 .UseInMemoryDatabase(databaseName: dbName)
                 .Options;
 
+            var mockRateService = new Mock<IExchangeRateService>();
             var context = new ApplicationDbContext(options);
-            return new TransactionService(context);
+
+            return new TransactionService(context, mockRateService.Object);
         }
 
-        protected static (TransactionsController, Mock<ITransactionService>, Mock<IExchangeRateService>) CreateControllerWithMocks()
+        protected static (TransactionsController, Mock<ITransactionService>) CreateControllerWithMocks()
         {
+            var logger = new Mock<ILogger<TransactionsController>>();
             var mockTxService = new Mock<ITransactionService>();
-            var mockRateService = new Mock<IExchangeRateService>();
-            var controller = new TransactionsController(mockTxService.Object, mockRateService.Object);
+            var controller = new TransactionsController(logger.Object, mockTxService.Object);
 
-            return (controller, mockTxService, mockRateService);
+            return (controller, mockTxService);
         }
     }
 }

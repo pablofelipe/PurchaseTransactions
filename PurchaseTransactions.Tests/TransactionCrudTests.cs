@@ -1,4 +1,6 @@
-﻿using PurchaseTransactions.Domain;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using PurchaseTransactions.Domain;
+using System.ComponentModel.DataAnnotations;
 
 namespace PurchaseTransactions.Tests
 {
@@ -28,16 +30,19 @@ namespace PurchaseTransactions.Tests
         }
 
         [Fact]
-        public void GetById_Should_Return_Null_When_Not_Found()
+        public void GetById_Should_Throw_When_Not_Found()
         {
             // Arrange
-            var service = GetService(nameof(GetById_Should_Return_Null_When_Not_Found));
+            var service = GetService(nameof(GetById_Should_Throw_When_Not_Found));
 
             // Act
-            var result = service.GetById(Guid.NewGuid());
+            var newGuid = Guid.NewGuid();
+
+            // Act & Assert
+            var exception = Assert.Throws<ValidationException>(() => service.GetById(newGuid));
 
             // Assert
-            Assert.Null(result);
+            Assert.Equal($"Transaction with ID {newGuid} not found", exception.Message);
         }
 
         [Fact]
@@ -84,10 +89,10 @@ namespace PurchaseTransactions.Tests
         }
 
         [Fact]
-        public void DeleteTransaction_Should_Remove_Transaction()
+        public void DeleteTransaction_Should_Throw_When_Transaction_NotFound()
         {
             // Arrange
-            var service = GetService(nameof(DeleteTransaction_Should_Remove_Transaction));
+            var service = GetService(nameof(DeleteTransaction_Should_Throw_When_Transaction_NotFound));
             var transaction = new Transaction
             {
                 Description = "Purchase for remove",
@@ -99,11 +104,11 @@ namespace PurchaseTransactions.Tests
 
             // Act
             var deleteResult = service.DeleteTransaction(created.Id);
-            var retrieved = service.GetById(created.Id);
 
-            // Assert
-            Assert.True(deleteResult);
-            Assert.Null(retrieved);
+            // Act & Assert
+            var exception = Assert.Throws<ValidationException>(() => service.GetById(created.Id));
+
+            Assert.Equal($"Transaction with ID {created.Id} not found", exception.Message);
         }
 
         [Fact]

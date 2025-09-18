@@ -11,6 +11,8 @@ obj/
 # SQLite
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 # Logs
 logs/
@@ -21,3 +23,12 @@ logs/
 
 # Docker
 data/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Test logs
+*.testlog
+*.vsidx

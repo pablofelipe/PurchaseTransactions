@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using PurchaseTransactions.Controllers;
 using PurchaseTransactions.Domain;
 using PurchaseTransactions.Domain.Dto;
+using PurchaseTransactions.Exceptions;
+using System.ComponentModel.DataAnnotations;
 
 namespace PurchaseTransactions.Tests
 {
@@ -12,30 +15,29 @@ namespace PurchaseTransactions.Tests
         public async Task Get_WithCurrency_Should_Return_Converted_Transaction()
         {
             // Arrange
-            var (controller, mockTxService, mockRateService) = CreateControllerWithMocks();
+            var (controller, mockTxService) = CreateControllerWithMocks();
             var transactionId = Guid.NewGuid();
             var transactionDate = DateTime.UtcNow.AddDays(-30);
 
-            var transaction = new Transaction
-            {
-                Id = transactionId,
-                Description = "Test Transaction",
-                TransactionDate = transactionDate,
-                AmountUsd = 100.00m
-            };
-
-            mockTxService.Setup(x => x.GetByIdAsync(transactionId))
-                .ReturnsAsync(transaction);
-
-            mockRateService.Setup(x => x.GetRateForDateAsync("BRL", transactionDate))
-                .ReturnsAsync((5.50m, transactionDate));
+            mockTxService.Setup(x => x.GetTransactionWithConversionAsync(transactionId, "BRL"))
+                .ReturnsAsync(new TransactionResponseDto
+                {
+                    Id = transactionId,
+                    Description = "Test Transaction",
+                    TransactionDate = transactionDate,
+                    AmountUsd = 100.00m,
+                    TargetCurrency = "BRL",
+                    ExchangeRate = 5.50m,
+                    ConvertedAmount = 550.00m,
+                    ExchangeRateDate = transactionDate
+                });
 
             // Act
             var result = await controller.Get(transactionId, "BRL");
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
-            var convertedResult = Assert.IsType<TransactionWithConversionDto>(okResult.Value);
+            var convertedResult = Assert.IsType<TransactionResponseDto>(okResult.Value);
 
             Assert.Equal(550.00m, convertedResult.ConvertedAmount);
             Assert.Equal(5.50m, convertedResult.ExchangeRate);
@@ -46,7 +48,7 @@ namespace PurchaseTransactions.Tests
         public async Task Get_WithoutCurrency_Should_Return_Original_Transaction()
         {
             // Arrange
-            var (controller, mockTxService, mockRateService) = CreateControllerWithMocks();
+            var (controller, mockTxService) = CreateControllerWithMocks();
             var transactionId = Guid.NewGuid();
 
             var transaction = new Transaction
@@ -73,50 +75,64 @@ namespace PurchaseTransactions.Tests
         public async Task Get_WithCurrency_Should_Return_NotFound_When_Transaction_Not_Exists()
         {
             // Arrange
-            var (controller, mockTxService, mockRateService) = CreateControllerWithMocks();
+            var (controller, mockTxService) = CreateControllerWithMocks();
             var transactionId = Guid.NewGuid();
 
-            mockTxService.Setup(x => x.GetByIdAsync(transactionId))
-                .ReturnsAsync((Transaction?)null);
+            mockTxService.Setup(x => x.GetTransactionWithConversionAsync(transactionId, "BRL"))
+                .ThrowsAsync(new TransactionNotFoundException(transactionId));
 
             // Act
             var result = await controller.Get(transactionId, "BRL");
 
             // Assert
-            Assert.IsType<NotFoundResult>(result);
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            Assert.Equal($"Transaction with ID {transactionId} not found", notFoundResult.Value);
         }
 
         [Fact]
-        public async Task Get_WithCurrency_Should_Propagate_ExchangeRate_Errors()
+        public async Task Get_WithCurrency_Should_Return_BadRequest_When_ExchangeRate_Error()
         {
             // Arrange
-            var (controller, mockTxService, mockRateService) = CreateControllerWithMocks();
+            var (controller, mockTxService) = CreateControllerWithMocks();
             var transactionId = Guid.NewGuid();
-            var transactionDate = DateTime.UtcNow.AddMonths(-7);
+            var testDate = new DateTime(2024, 1, 15);
 
-            var transaction = new Transaction
-            {
-                Id = transactionId,
-                Description = "Old Transaction",
-                TransactionDate = transactionDate,
-                AmountUsd = 100.00m
-            };
+            mockTxService.Setup(x => x.GetTransactionWithConversionAsync(transactionId, "EUR"))
+                .ThrowsAsync(new ExchangeRateNotFoundException("EUR", testDate));
 
-            mockTxService.Setup(x => x.GetByIdAsync(transactionId))
-                .ReturnsAsync(transaction);
+            // Act
+            var result = await controller.Get(transactionId, "EUR");
 
-            mockRateService.Setup(x => x.GetRateForDateAsync("EUR", transactionDate))
-                .ThrowsAsync(new Exception("No rate available"));
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<Exception>(() => controller.Get(transactionId, "EUR"));
+            Assert.Contains("No exchange rate available for EUR", badRequestResult.Value.ToString());
+        }
+
+        [Fact]
+        public async Task Get_WithCurrency_Should_Return_InternalServerError_When_Unexpected_Error()
+        {
+            // Arrange
+            var (controller, mockTxService) = CreateControllerWithMocks();
+            var transactionId = Guid.NewGuid();
+
+            mockTxService.Setup(x => x.GetTransactionWithConversionAsync(transactionId, "EUR"))
+                .ThrowsAsync(new Exception("Unexpected database error"));
+
+            // Act
+            var result = await controller.Get(transactionId, "EUR");
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+            Assert.Equal("An unexpected error occurred", statusCodeResult.Value);
         }
 
         [Fact]
         public async Task Create_Should_Return_Created_With_Location_Header()
         {
             // Arrange
-            var (controller, mockTxService, mockRateService) = CreateControllerWithMocks();
+            var (controller, mockTxService) = CreateControllerWithMocks();
             var transactionId = Guid.NewGuid();
             var dto = new CreateTransactionDto
             {
@@ -143,6 +159,30 @@ namespace PurchaseTransactions.Tests
             var createdResult = Assert.IsType<CreatedAtActionResult>(result);
             Assert.Equal(nameof(TransactionsController.Get), createdResult.ActionName);
             Assert.Equal(transactionId, createdResult.RouteValues?["id"]);
+            Assert.Equal(createdTransaction, createdResult.Value);
+        }
+
+        [Fact]
+        public async Task Create_Should_Return_BadRequest_When_Validation_Fails()
+        {
+            // Arrange
+            var (controller, mockTxService) = CreateControllerWithMocks();
+            var dto = new CreateTransactionDto
+            {
+                Description = "Test Transaction",
+                TransactionDate = DateTime.UtcNow,
+                AmountUsd = -100.00m 
+            };
+
+            mockTxService.Setup(x => x.CreateAsync(dto))
+                .ThrowsAsync(new ValidationException("Purchase value must be positive"));
+
+            // Act
+            var result = await controller.Create(dto);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("Purchase value must be positive", badRequestResult.Value);
         }
     }
 }

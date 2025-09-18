@@ -7,4 +7,5 @@ public interface ITransactionService
 {
     Task<Transaction> CreateAsync(CreateTransactionDto dto);
     Task<Transaction?> GetByIdAsync(Guid id);
+    Task<TransactionResponseDto> GetTransactionWithConversionAsync(Guid id, string currency);
 }

@@ -8,43 +8,88 @@ This API allows you to create purchase transactions in USD and convert them to v
 
 ## ✨ Features
 
-- **Transaction Management**: Create and retrieve purchase transactions
-- **Real-time Currency Conversion**: Convert USD amounts to various currencies using official exchange rates
-- **RESTful API**: Clean, intuitive API endpoints
-- **Docker Support**: Easy deployment with Docker and Docker Compose
-- **SQLite Database**: Lightweight, file-based database storage
-- **Unit Tests**: Comprehensive test coverage
+* **Transaction Management**: Create and retrieve purchase transactions
+* **Real-time Currency Conversion**: Convert USD amounts to various currencies using official exchange rates
+* **RESTful API**: Clean, intuitive API endpoints
+* **Docker Support**: Easy deployment with Docker and Docker Compose
+* **SQLite Database**: Lightweight, file-based database storage
+* **Unit Tests**: Comprehensive test coverage
 
 ## 🚀 API Endpoints
 
 ### Local Development (without Docker)
-- **HTTP**: http://localhost:5097
-- **HTTPS**: https://localhost:7082
+
+* **HTTP**: [http://localhost:5097](http://localhost:5097)
+* **HTTPS**: [https://localhost:7082](https://localhost:7082)
 
 ### Docker Deployment
-- **HTTP**: http://localhost:5000
-- **HTTPS**: https://localhost:5001
 
-### Example with Docker:
+The application exposes ports `80` (HTTP) and `443` (HTTPS) inside the container. When running with Docker, the host may map these ports to different numbers.
+
+To check which ports are mapped on your machine, run:
 
 ```bash
-# Create transaction
-curl -X 'POST' \
-  'http://localhost:5000/transactions' \
-  -H 'accept: */*' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "description": "Test Purchase",
-  "transactionDate": "2025-09-17T00:00:00Z",
-  "amountUsd": 29.87
-}'
+docker ps
+```
 
-# Get converted transaction
-curl -X 'GET' \
-  'http://localhost:5000/transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real' \
-  -H 'accept: */*'
-  
+Example output:
+
+```
+CONTAINER ID   IMAGE                               PORTS
+abcd1234efgh   purchasetransactions:latest         0.0.0.0:5000->80/tcp, 0.0.0.0:5001->443/tcp
+```
+
+In this case:
+
+* **HTTP**: [http://localhost:5000](http://localhost:5000)
+* **HTTPS**: [https://localhost:5001](https://localhost:5001)
+
+⚠️ Since the API uses a self-signed certificate, when testing with `curl` you must use the `-k` flag to ignore SSL validation.
+
+---
+
+### Example with Docker
+
+#### Create transaction
+
+**Windows CMD:**
+
+```cmd
+curl -k -X POST "https://localhost:5001/transactions" ^
+ -H "accept: */*" ^
+ -H "Content-Type: application/json" ^
+ -d "{ \"description\": \"Test Purchase\", \"transactionDate\": \"2025-09-17T00:00:00Z\", \"amountUsd\": 29.87 }"
+```
+
+**PowerShell:**
+
+```powershell
+curl -k -X POST "https://localhost:5001/transactions" `
+ -H 'accept: */*' `
+ -H 'Content-Type: application/json' `
+ -d '{ "description": "Test Purchase", "transactionDate": "2025-09-17T00:00:00Z", "amountUsd": 29.87 }'
+```
+
+#### Get converted transaction
+
+**Windows CMD:**
+
+```cmd
+curl -k -X GET "https://localhost:5001/transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real" ^
+ -H "accept: */*"
+```
+
+**PowerShell:**
+
+```powershell
+curl -k -X GET "https://localhost:5001/transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real" `
+ -H 'accept: */*'
+```
+
+---
+
 ### Create a Transaction
+
 ```bash
 POST /transactions
 Content-Type: application/json
@@ -57,6 +102,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "id": "940f4ff6-fc8c-4649-a42f-b4ab1f6fe421",
@@ -67,16 +113,19 @@ Content-Type: application/json
 ```
 
 ### Get Transaction with Currency Conversion
+
 ```bash
 GET /transactions/{id}?currency={currencyCode}
 ```
 
 **Example:**
+
 ```bash
 GET /transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real
 ```
 
 **Response:**
+
 ```json
 {
   "id": "940f4ff6-fc8c-4649-a42f-b4ab1f6fe421",
@@ -91,29 +140,32 @@ GET /transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real
 
 ## 🛠️ Technology Stack
 
-- **.NET Core 8.0**: Backend framework
-- **Entity Framework Core**: ORM for database operations
-- **SQLite**: Database storage
-- **Docker**: Containerization
-- **xUnit**: Unit testing framework
-- **HttpClient**: External API integration
+* **.NET Core 8.0**: Backend framework
+* **Entity Framework Core**: ORM for database operations
+* **SQLite**: Database storage
+* **Docker**: Containerization
+* **xUnit**: Unit testing framework
+* **HttpClient**: External API integration
 
 ## 📦 Installation & Setup
 
 ### Prerequisites
-- .NET 8.0 SDK
-- Docker and Docker Compose (optional)
-- Git
+
+* .NET 8.0 SDK
+* Docker and Docker Compose (optional)
+* Git
 
 ### Method 1: Using Docker (Recommended)
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-username/PurchaseTransactions.git
    cd PurchaseTransactions
    ```
 
 2. **Build and run with Docker Compose**
+
    ```bash
    docker-compose up -d
    ```
@@ -121,22 +173,26 @@ GET /transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real
 ### Method 2: Local Development
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-username/PurchaseTransactions.git
    cd PurchaseTransactions
    ```
 
 2. **Restore dependencies**
+
    ```bash
    dotnet restore
    ```
 
 3. **Run the application**
+
    ```bash
    dotnet run --project PurchaseTransactions/PurchaseTransactions.csproj
    ```
 
 4. **Run tests**
+
    ```bash
    dotnet test PurchaseTransactions.Tests/PurchaseTransactions.Tests.csproj
    ```
@@ -144,21 +200,25 @@ GET /transactions/940f4ff6-fc8c-4649-a42f-b4ab1f6fe421?currency=Real
 ## 🐳 Docker Commands
 
 ### Build and run the application
+
 ```bash
 docker-compose up -d purchasetransactions
 ```
 
 ### Run tests
+
 ```bash
 docker-compose run --rm tests
 ```
 
 ### View logs
+
 ```bash
 docker-compose logs -f purchasetransactions
 ```
 
 ### Stop the application
+
 ```bash
 docker-compose down
 ```
@@ -180,9 +240,10 @@ The application uses `appsettings.json` for configuration:
 ```
 
 ### Environment Variables
-- `ASPNETCORE_ENVIRONMENT`: Development/Production
-- `ConnectionStrings__DefaultConnection`: Database connection string
-- `ApiFiscal__BaseUrl`: Treasury API endpoint
+
+* `ASPNETCORE_ENVIRONMENT`: Development/Production
+* `ConnectionStrings__DefaultConnection`: Database connection string
+* `ApiFiscal__BaseUrl`: Treasury API endpoint
 
 ## 📊 External API Integration
 
@@ -191,6 +252,7 @@ This application integrates with the U.S. Treasury Department's Fiscal Data API 
 **API Endpoint:** `https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange`
 
 The API returns exchange rate data in the following format:
+
 ```json
 {
   "data": [
@@ -208,20 +270,23 @@ The API returns exchange rate data in the following format:
 ## 🧪 Testing
 
 ### Run all tests
+
 ```bash
 dotnet test
 ```
 
 ### Run tests with Docker
+
 ```bash
 docker-compose run --rm tests
 ```
 
 ### Test coverage includes:
-- Transaction creation and retrieval
-- Currency conversion logic
-- API integration tests
-- Error handling scenarios
+
+* Transaction creation and retrieval
+* Currency conversion logic
+* API integration tests
+* Error handling scenarios
 
 ## 📁 Project Structure
 
@@ -231,7 +296,8 @@ PurchaseTransactions/
 │   ├── Controllers/              # API controllers
 │   ├── Domain/              	  # Business Rules
 │   ├── Domain/Dto                # Data Transfer Object
-│   ├── Persistence/              # Database context 
+│   ├── Exceptions/               # Specific Exceptions
+│   ├── Persistence/              # Database context
 │   ├── Services/                 # Logic services
 │   └── appsettings.json          # Configuration
 ├── PurchaseTransactions.Tests/   # Unit test project
@@ -262,10 +328,10 @@ If you encounter any issues or have questions:
 
 ## 🔗 Useful Links
 
-- [U.S. Treasury Fiscal Data API](https://fiscaldata.treasury.gov/api-documentation/)
-- [.NET Core Documentation](https://docs.microsoft.com/en-us/dotnet/core/)
-- [Docker Documentation](https://docs.docker.com/)
-- [Entity Framework Core](https://docs.microsoft.com/en-us/ef/core/)
+* [U.S. Treasury Fiscal Data API](https://fiscaldata.treasury.gov/api-documentation/)
+* [.NET Core Documentation](https://docs.microsoft.com/en-us/dotnet/core/)
+* [Docker Documentation](https://docs.docker.com/)
+* [Entity Framework Core](https://docs.microsoft.com/en-us/ef/core/)
 
 ---
 

@@ -8,8 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration["ConnectionStrings:DefaultConnection"]));
 
-builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 
 builder.Services.AddHttpClient();
 

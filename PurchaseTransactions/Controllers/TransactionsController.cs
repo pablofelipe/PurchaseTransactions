@@ -1,46 +1,78 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PurchaseTransactions.Domain.Dto;
+using PurchaseTransactions.Exceptions;
 using PurchaseTransactions.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace PurchaseTransactions.Controllers;
 
 [ApiController]
 [Route("transactions")]
-public class TransactionsController(ITransactionService txSvc, IExchangeRateService rateSvc) : ControllerBase
+public class TransactionsController(ILogger<TransactionsController> logger, ITransactionService transactionService) : ControllerBase
 {
-    private readonly ITransactionService _txSvc = txSvc;
-    private readonly IExchangeRateService _rateSvc = rateSvc;
+    private readonly ITransactionService _transactionService = transactionService;
+    private readonly ILogger<TransactionsController> _logger = logger;
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTransactionDto dto)
     {
-        var txn = await _txSvc.CreateAsync(dto);
-        return CreatedAtAction(nameof(Get), new { id = txn.Id }, txn);
+        try
+        {
+            var txn = await _transactionService.CreateAsync(dto);
+            return CreatedAtAction(nameof(Get), new { id = txn.Id }, txn);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating transaction");
+            return StatusCode(500, "An unexpected error occurred");
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(Guid id, [FromQuery] string? currency)
     {
-        var txn = await _txSvc.GetByIdAsync(id);
-        if (txn == null) return NotFound();
-
-        if (string.IsNullOrWhiteSpace(currency))
-            return Ok(txn);
-
-        var (rate, rateDate) = await _rateSvc.GetRateForDateAsync(currency, txn.TransactionDate);
-        var converted = Math.Round(txn.AmountUsd * rate, 2, MidpointRounding.AwayFromZero);
-
-        var result = new TransactionWithConversionDto
+        try
         {
-            Id = txn.Id,
-            Description = txn.Description,
-            TransactionDate = txn.TransactionDate,
-            AmountUsd = txn.AmountUsd,
-            TargetCurrency = currency.ToUpperInvariant(),
-            ExchangeRate = rate,
-            ConvertedAmount = converted
-        };
-
-        return Ok(result);
+            if (string.IsNullOrEmpty(currency))
+            {
+                var txn = await _transactionService.GetByIdAsync(id);
+                if (txn == null)
+                {
+                    return NotFound($"Transaction with ID {id} not found");
+                }
+                return Ok(txn);
+            }
+            else
+            {
+                var result = await _transactionService.GetTransactionWithConversionAsync(id, currency);
+                return Ok(result);
+            }
+        }
+        catch (TransactionNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ExchangeRateNotFoundException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidTransactionException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (ExchangeRateServiceException ex)
+        {
+            _logger.LogError(ex, "Exchange rate service error");
+            return StatusCode(500, "Service temporarily unavailable");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error retrieving transaction {Id}", id);
+            return StatusCode(500, "An unexpected error occurred");
+        }
     }
 }
